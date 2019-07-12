@@ -1,0 +1,65 @@
+{
+    "ConfigVersion": "1.0",
+    "Path": [
+        {
+            "ReferenceDirectory": "R:\\Backups\\",
+            "DifferenceDirectory": "T:\\Backups\\",
+            "LogPath": "C:\\logs\\PSPathSync\\PSPathSync_{0}_{1}.txt"
+        }
+    ],
+    "Notification": [
+        {
+            "SenderPort": "587",
+            "RecipientAddress": "aarontheadmin@somesite.com",
+            "UseSSL": "1",
+            "SenderAccountPasswordSecureString": "4100420043004400450046004700480031003200330034003500360037003800",
+            "SenderEmail": "noreply@somesite.com",
+            "SmtpServer": "smtp.office365.com"
+        }
+    ],
+    "Message": [
+        {
+            "TargetMissing": [
+                {
+                    "Title": "Target Does Not Exist",
+                    "Data": [
+                        "The <strong>{0}</strong> target does not exist or is in use and needs to be unlocked.",
+                        "Please make sure <strong>{0}</strong> is connected and the operating system recognizes",
+                        "it, and try again."
+                    ]
+                }
+            ],
+            "SyncStarted": [
+                {
+                    "Title": "Backup Sync Started",
+                    "Data": [
+                        "Backup sync process has started.<p>Target label: <strong>{0}</strong></p>"
+                    ]
+                }
+            ],
+            "IOException": [
+                {
+                    "Title": "IOException",
+                    "Data": [
+                        "<p>Error: An IO exception occured (not enough free space or device is not ready). ",
+                        "Could not copy {0} ({1}) to <strong>{2}</strong>.",
+                        "Copy process stopped.</p><p>Free space: {3}</p>"
+                    ]
+                }
+            ],
+            "SyncComplete": [
+                {
+                    "Title": "Backup Sync Report",
+                    "Data": [
+                        "<table border=0 cellpadding=3 cellspacing=0>",
+                        "<tr><td>Sync target</td><td>: <strong>{0}</strong></td></tr>",
+                        "<tr><td>Completed transfers</td><td>: {1}</td></tr>",
+                        "<tr><td>Failed transfers</td><td>: {2}</td></tr>",
+                        "<tr><td>Stale files removed</td><td>: {3}</td></tr>",
+                        "<tr><td colspan='2'>{4}</td></tr></table>"
+                    ]
+                }
+            ]
+        }
+    ]
+}
