@@ -8,8 +8,9 @@ function Send-EmailNotification {
         [string]$MessageBody
     )
 
-    [pscustomobject] $notification = Get-PSPathSyncConfiguration | Select-Object -ExpandProperty Notification
-    [string]         $senderEmail  = $notification.SenderEmail
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 # modern HTTPS requests
+    [pscustomobject]                 $notification     = Get-PSPathSyncConfiguration | Select-Object -ExpandProperty Notification
+    [string]                         $senderEmail      = $notification.SenderEmail
 
     New-Variable -Name secureString -Visibility Private -Value ($notification.SenderAccountPasswordSecureString | ConvertTo-SecureString)
 
