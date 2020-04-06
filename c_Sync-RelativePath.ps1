@@ -40,42 +40,52 @@ function Sync-RelativePath {
         [switch]$Notify
     )
 
+
     [pscustomobject]$config               = Get-PSPathSyncConfiguration
     [string]         $referenceDirectory  = $config.Path.ReferenceDirectory
     [string]         $differenceDirectory = $config.Path.DifferenceDirectory
-    [pscustomobject] $message             = $config.Message
-
-    # Check to see if the reference and difference directories are available; if unavailable,
-    # email notification and stop script.
-    try {
-        Test-Path -Path $referenceDirectory -PathType Container -ErrorAction Stop | Out-Null
-        Test-Path -Path $differenceDirectory -PathType Container -ErrorAction Stop | Out-Null
-        [string]$differenceDirectoryDriveLetter = $differenceDirectory.Substring(0, 2)
-
-        Write-Verbose "ReferenceDirectory is $referenceDirectory"
-        Write-Verbose "DifferenceDirectory is $differenceDirectory"
-
-    } # try
-    catch {
-        Write-Error -Message $_
-
-        [string]$subject     = $message.TargetMissing.Title
-        [string]$messageBody = $message.TargetMissing.Data -f $differenceDirectory
-
-        if ($Notify.IsPresent) {
-            Send-EmailNotification -Subject $subject -MessageBody $messageBody
-        }
-
-        Remove-Variable -Name differenceDirectoryDriveLetter, messageBody,
-        differenceDirectory, referenceDirectory, subject
-        Exit
-    } # catch
+    [System.Array]   $directories         = @($referenceDirectory, $differenceDirectory)
+    [pscustomobject] $notifier            = $config.Notification
 
 
+    # test if reference and difference directories exist
+    foreach ($index in (1..($directories.Count))) {
+
+        $item = $directories[$index -1]
+
+        if (-not (Test-Path -Path $item -PathType Container)) {
+
+            Write-Output "Could not resolve $item"
+
+            [string]$subject     = $notifier.DirectoryNotFoundNotFound.Title
+            [string]$messageBody = $notifier.DirectoryNotFound.Data -f $item
+    
+            if ($Notify.IsPresent -and [bool]$notifier.DirectoryNotFound.Active) {
+                Send-EmailNotification -Subject $subject -MessageBody $messageBody
+            }
+
+            Exit
+        }#if
+    }#foreach
+
+    Write-Output "All required paths found"
+
+
+    
+    
+    Write-Verbose "ReferenceDirectory is $referenceDirectory"
+    Write-Verbose "DifferenceDirectory is $differenceDirectory"
+    
+    
     # Get filesystem objects within ReferenceDirectory and DifferenceDirectory
-    [pscustomobject]$fileSystemObjects            = Compare-RelativePath -ReferenceDirectory $referenceDirectory -DifferenceDirectory $differenceDirectory
-    [pscustomobject]$fsoOnlyInReferenceDirectory  = $fileSystemObjects | Where-Object -FilterScript { $_.SideIndicator -match '^<=$' }
-    [pscustomobject]$fsoOnlyInDifferenceDirectory = $fileSystemObjects | Where-Object -FilterScript { $_.SideIndicator -match '^=>$' }
+    [pscustomobject]$fileSystemObjects               = Compare-RelativePath -ReferenceDirectory $referenceDirectory -DifferenceDirectory $differenceDirectory
+    [pscustomobject]$fsoOnlyInReferenceDirectory     = $fileSystemObjects | Where-Object -FilterScript { $_.SideIndicator -match '^<=$' }
+    [pscustomobject]$fsoOnlyInDifferenceDirectory    = $fileSystemObjects | Where-Object -FilterScript { $_.SideIndicator -match '^=>$' }
+    [string]         $differenceDirectoryDriveLetter = $differenceDirectory.Substring(0, 2)
+    [string]         $diffDirectoryVolumeLabel       = Get-VolumeName -DriveLetter $differenceDirectoryDriveLetter
+    [pscustomobject] $syncStartedNotifier            = $notifier.SyncStartedNotifier
+    [pscustomobject] $syncCompletedNotifier          = $notifier.SyncCompletedNotifier
+
 
 
     # If Resync specified, include all filesystem objects in ReferenceDirectory
@@ -92,17 +102,20 @@ function Sync-RelativePath {
         [pscustomobject]$fileSystemObjectsToSync = $fsoOnlyInReferenceDirectory
     } # else
 
+
     Remove-Variable -Name fileSystemObjects, fsoOnlyInReferenceDirectory, ResyncAll -ErrorAction SilentlyContinue
 
 
-    # Send email notification that sync process has started
-    [string]$diffDirectoryVolumeLabel = Get-VolumeName -DriveLetter $differenceDirectoryDriveLetter
-    [string]$subject                  = $message.SyncStarted.Title
-    [string]$messageBody              = $message.SyncStarted.Data -f $diffDirectoryVolumeLabel
 
-    if ($Notify.IsPresent) {
+    # if enabled, send email notification that sync process has started
+    if ($Notify.IsPresent -and $syncStartedNotifier.Active) {
+
+        [string]$subject     = $syncStartedNotifier.Title
+        [string]$messageBody = $syncStartedNotifier.Data -f $diffDirectoryVolumeLabel
+
         Send-EmailNotification -Subject $subject -MessageBody $messageBody
     }
+
 
 
     # Log file specifics
@@ -134,6 +147,8 @@ Difference Parent`t: $differenceDirectory
             break
         } # catch
     } # if
+
+
 
     <#
     If filesystem objects exist only in the DifferenceDirectory, remove them
@@ -203,7 +218,7 @@ Difference Parent`t: $differenceDirectory
                 [uint16]$failedSyncCount  += 1
                 [string]$failedFileSize    = "{0:N2} GB" -f ((Get-ChildItem -Path $sourceFullName).Length / 1GB)
                 [string]$offsiteFreeSpace  = "{0:N2} GB" -f ((Get-Volume -DriveLetter ($differenceDirectoryDriveLetter -replace ':')).SizeRemaining / 1GB)
-                [string]$msgDetail         = $message.IOException.Data -f $sourceFullName, $failedFileSize, $diffDirectoryVolumeLabel, $offsiteFreeSpace
+                [string]$msgDetail         = $notifier.IOException.Data -f $sourceFullName, $failedFileSize, $diffDirectoryVolumeLabel, $offsiteFreeSpace
 
                 Remove-Variable -Name differenceDirectoryDriveLetter, failedFileSize, offsiteFreeSpace
 
@@ -238,12 +253,13 @@ Difference Parent`t: $differenceDirectory
     logHeader, logPath, differenceDirectory,
     referenceDirectory, moduleVersion
 
-    # Send notification indicating sync process has completed.
-    [string]$subject     = $message.SyncComplete.Title
-    [string]$messageBody = $message.SyncComplete.Data -f $diffDirectoryVolumeLabel,
-    $completedSyncCount, $failedSyncCount, $orphanedFileSystemObjectCount, $msgDetail
+    # if enabled, send notification indicating sync process has completed.
+    if ($Notify.IsPresent -and $syncCompletedNotifier.Active) {
 
-    if ($Notify.IsPresent) {
+        [string]$subject     = $syncCompletedNotifier.Title
+        [string]$messageBody = $syncCompletedNotifier.Data -f $diffDirectoryVolumeLabel,
+        $completedSyncCount, $failedSyncCount, $orphanedFileSystemObjectCount, $msgDetail
+
         Send-EmailNotification -Subject $subject -MessageBody $messageBody
     }
 
