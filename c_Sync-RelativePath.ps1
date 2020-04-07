@@ -156,7 +156,7 @@ Difference Parent`t: $differenceDirectory
     is in sync with the ReferenceDirectory and prevents orphaned filesystem
     objects from consuming DifferenceDirectory disk space.
     #>
-    [uint32]$orphanedFileSystemObjectCount = 0
+    [int]$orphanedFileSystemObjectCount = 0
 
     if ($fsoOnlyInDifferenceDirectory.Count -gt 0) {
 
@@ -185,7 +185,7 @@ Difference Parent`t: $differenceDirectory
 
 
         if ($?) {
-            [uint32]$orphanedFileSystemObjectCount = $fsoOnlyInDifferenceDirectory.Count
+            [int]$orphanedFileSystemObjectCount = $fsoOnlyInDifferenceDirectory.Count
         }#if
         else {
             [string]$orphanedFileSystemObjectCount = "$($fsoOnlyInDifferenceDirectory.Count) with errors"
@@ -196,8 +196,8 @@ Difference Parent`t: $differenceDirectory
 
 
     # Counters
-    [uint16]$completedSyncCount = 0
-    [uint16] $failedSyncCount   = 0
+    [int]   $completedSyncCount = 0
+    [int]    $failedSyncCount   = 0
     [string]$msgDetail          = $null
 
 
@@ -212,7 +212,7 @@ Difference Parent`t: $differenceDirectory
 
             try { New-Item -Path $destinationFullName -ItemType Directory }#try
             catch {
-                [uint16]$failedSyncCount  += 1
+                [int]   $failedSyncCount  += 1
                 [string]$failedFileSize    = "{0:N2} GB" -f ((Get-ChildItem -Path $sourceFullName).Length / 1GB)
                 [string]$offsiteFreeSpace  = "{0:N2} GB" -f ((Get-Volume -DriveLetter ($differenceDirectoryDriveLetter -replace ':')).SizeRemaining / 1GB)
                 [string]$msgDetail         = $_
@@ -227,7 +227,7 @@ Difference Parent`t: $differenceDirectory
             try { Copy-Item -Path $sourceFullName -Destination $destinationFullName -Force }#try
             catch [System.IO.IOException] {
 
-                [uint16]$failedSyncCount  += 1
+                [int]   $failedSyncCount  += 1
                 [string]$failedFileSize    = "{0:N2} GB" -f ((Get-ChildItem -Path $sourceFullName).Length / 1GB)
                 [string]$offsiteFreeSpace  = "{0:N2} GB" -f ((Get-Volume -DriveLetter ($differenceDirectoryDriveLetter -replace ':')).SizeRemaining / 1GB)
                 [string]$msgDetail         = $notifier.IOException.Data -f $sourceFullName, $failedFileSize, $diffDirectoryVolumeLabel, $offsiteFreeSpace
@@ -239,7 +239,7 @@ Difference Parent`t: $differenceDirectory
             }#catch IOException
             catch [System.Exception] {
 
-                [uint16]$failedSyncCount += 1
+                [int]   $failedSyncCount += 1
                 [string]$msgDetail        = $_
 
                 Write-Error "Could not copy $sourceFullName to $destinationFullName"
@@ -249,7 +249,7 @@ Difference Parent`t: $differenceDirectory
 
 
         if ($?) {
-            [uint16]$completedSyncCount += 1
+            [int]   $completedSyncCount += 1
             [string]$copyEndTime         = Get-Date -UFormat %c
 
             Add-Content -Path $logFileFullName -Value "[$copyEndTime]:`tCopied`t$($destinationFullName.Trim())"
