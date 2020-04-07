@@ -94,13 +94,13 @@ function Sync-RelativePath {
         Write-Verbose -Message "Resync is specified"
 
         [pscustomobject]$fileSystemObjectsToSync = $fileSystemObjects | Where-Object -FilterScript { $_.SideIndicator -match '^[<=]=$' }
-    } # if
+    }#if
     else {
         # Sync filesystem objects existing only in ReferenceDirectory
         Write-Verbose -Message "Resync not specified"
 
         [pscustomobject]$fileSystemObjectsToSync = $fsoOnlyInReferenceDirectory
-    } # else
+    }#else
 
 
     Remove-Variable -Name fileSystemObjects, fsoOnlyInReferenceDirectory, ResyncAll -ErrorAction SilentlyContinue
@@ -141,12 +141,12 @@ Difference Parent`t: $differenceDirectory
     if (-not (Test-Path -Path $logFileFullName)) {
         try {
             New-Item -Path $logFileFullName -Value $logHeader -ErrorAction Stop
-        } # try
+        }#try
         catch {
             Write-Error -Message $_
             break
-        } # catch
-    } # if
+        }#catch
+    }#if
 
 
 
@@ -162,32 +162,44 @@ Difference Parent`t: $differenceDirectory
 
         [hashtable]$contentProps = @{ Path = $logFileFullName }
 
-        # Line below sorts directory objects at end of collection. Once all
-        # orphaned files are removed from DifferenceDirectory, any empty folders
-        # they were in can be deleted.
+
+        # Sort collection so orphaned files are at top and directories at bottom.
+        # Once all 'orphaned' files in collection are removed from DifferenceDirectory,
+        # any empty folders they were in can be deleted.
         ($fsoOnlyInDifferenceDirectory | Sort-Object -Property isContainer) | & {
             process {
-                Remove-OrphanedFSObject -InputObject $_ -Confirm:$false
+                try {
+                    Remove-OrphanedFSObject -InputObject $_ -Confirm:$false
+                }
+                catch {
+                    $contentProps['Value'] = "[$(Get-Date -UFormat %c)]:`tCould not deleted`t$($_.InputObject.Trim())"
+                    Add-Content @contentProps
+                    Continue
+                }
+
                 $contentProps['Value'] = "[$(Get-Date -UFormat %c)]:`tDeleted`t$($_.InputObject.Trim())"
 
                 Add-Content @contentProps
-            } # process
-        } # invocation
+            }#process
+        }#invocation
+
 
         if ($?) {
             [uint32]$orphanedFileSystemObjectCount = $fsoOnlyInDifferenceDirectory.Count
-        } # if
+        }#if
         else {
             [string]$orphanedFileSystemObjectCount = "$($fsoOnlyInDifferenceDirectory.Count) with errors"
-        } # else
-    } # if
+        }#else
+    }#if
     Remove-Variable -Name fsoOnlyInDifferenceDirectory
+
 
 
     # Counters
     [uint16]$completedSyncCount = 0
     [uint16] $failedSyncCount   = 0
     [string]$msgDetail          = $null
+
 
     # Copy filesystem objects to DifferenceDirectory
     foreach ($item in $fileSystemObjectsToSync) {
@@ -198,7 +210,7 @@ Difference Parent`t: $differenceDirectory
         if (($sourceFullName.PSIsContainer) -and
             (-not (Test-Path -Path $destinationFullName -PathType Container))) {
 
-            try { New-Item -Path $destinationFullName -ItemType Directory } # try
+            try { New-Item -Path $destinationFullName -ItemType Directory }#try
             catch {
                 [uint16]$failedSyncCount  += 1
                 [string]$failedFileSize    = "{0:N2} GB" -f ((Get-ChildItem -Path $sourceFullName).Length / 1GB)
@@ -207,12 +219,12 @@ Difference Parent`t: $differenceDirectory
 
                 Write-Error $_
                 break
-            } # catch
-        } # if
+            }#catch
+        }#if
         else {
             Write-Output "Copying $sourceFullName to $destinationFullName"
 
-            try { Copy-Item -Path $sourceFullName -Destination $destinationFullName -Force } # try
+            try { Copy-Item -Path $sourceFullName -Destination $destinationFullName -Force }#try
             catch [System.IO.IOException] {
 
                 [uint16]$failedSyncCount  += 1
@@ -224,7 +236,7 @@ Difference Parent`t: $differenceDirectory
 
                 Write-Error "Failed to copy $sourceFullName to $destinationFullName. Copy process stopped."
                 break
-            } # catch IOException
+            }#catch IOException
             catch [System.Exception] {
 
                 [uint16]$failedSyncCount += 1
@@ -232,8 +244,8 @@ Difference Parent`t: $differenceDirectory
 
                 Write-Error "Could not copy $sourceFullName to $destinationFullName"
                 break
-            } # catch
-        } # else
+            }#catch
+        }#else
 
 
         if ($?) {
@@ -243,10 +255,10 @@ Difference Parent`t: $differenceDirectory
             Add-Content -Path $logFileFullName -Value "[$copyEndTime]:`tCopied`t$($destinationFullName.Trim())"
 
             Remove-Variable -Name copyEndTime
-        } # if
+        }#if
         Remove-Variable -Name sourceFullName, destinationFullName
 
-    } # foreach
+    }#foreach
 
     Remove-Variable -Name differenceDirectoryDriveLetter, hostName,
     fileSystemObjectsToSync, logFileFullName,
@@ -266,4 +278,4 @@ Difference Parent`t: $differenceDirectory
     Remove-Variable -Name config, completedSyncCount,
     failedSyncCount, message, messageBody, msgDetail,
     orphanedFileSystemObjectCount, subject, diffDirectoryVolumeLabel
-} # function
+}#function
