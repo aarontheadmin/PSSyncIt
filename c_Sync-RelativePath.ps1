@@ -57,9 +57,9 @@ function Sync-RelativePath {
 
             Write-Output "Could not resolve $item"
 
-            [string]$subject     = $notifier.DirectoryNotFoundNotFound.Title
+            [string]$subject     = $notifier.DirectoryNotFound.Title
             [string]$messageBody = $notifier.DirectoryNotFound.Data -f $item
-    
+
             if ($Notify.IsPresent -and [bool]$notifier.DirectoryNotFound.Active) {
                 Send-EmailNotification -Subject $subject -MessageBody $messageBody
             }
@@ -71,12 +71,12 @@ function Sync-RelativePath {
     Write-Output "All required paths found"
 
 
-    
-    
+
+
     Write-Verbose "ReferenceDirectory is $referenceDirectory"
     Write-Verbose "DifferenceDirectory is $differenceDirectory"
-    
-    
+
+
     # Get filesystem objects within ReferenceDirectory and DifferenceDirectory
     [pscustomobject]$fileSystemObjects               = Compare-RelativePath -ReferenceDirectory $referenceDirectory -DifferenceDirectory $differenceDirectory
     [pscustomobject]$fsoOnlyInReferenceDirectory     = $fileSystemObjects | Where-Object -FilterScript { $_.SideIndicator -match '^<=$' }
