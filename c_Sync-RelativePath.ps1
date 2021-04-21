@@ -34,10 +34,16 @@ function Sync-RelativePath {
     [CmdletBinding()]
     param (
         [Parameter()]
-        [switch]$ResyncAll,
+        [switch]
+        $ResyncAll,
 
         [Parameter()]
-        [switch]$Notify
+        [switch]
+        $Notify,
+
+        [Parameter()]
+        [switch]
+        $EjectDisk
     )
 
 
@@ -260,10 +266,23 @@ Difference Parent`t: $differenceDirectory
 
     }#foreach
 
-    Remove-Variable -Name differenceDirectoryDriveLetter, hostName,
+    Remove-Variable -Name hostName,
     fileSystemObjectsToSync, logFileFullName,
     logHeader, logPath, differenceDirectory,
     referenceDirectory, moduleVersion
+    
+    # force safe removal of difference disk
+    if ($EjectDisk.IsPresent) {
+        $removeDriveExePath = Join-Path -Path $PSScriptRoot -ChildPath tools -AdditionalChildPath RemoveDrive.exe
+
+        [string] $differenceDirectoryVolume = ("{0}:" -f $differenceDirectoryDriveLetter)
+
+        & $removeDriveExePath $differenceDirectoryVolume '-f'
+
+        if (-not (Test-Path -Path $differenceDirectoryVolume)) {
+            $msgDetail += '<p>Disk safely ejected</p>'
+        }
+    }
 
     # if enabled, send notification indicating sync process has completed.
     if ($Notify.IsPresent -and $syncCompletedNotifier.Active) {
@@ -275,7 +294,7 @@ Difference Parent`t: $differenceDirectory
         Send-EmailNotification -Subject $subject -MessageBody $messageBody
     }
 
-    Remove-Variable -Name config, completedSyncCount,
+    Remove-Variable -Name config, completedSyncCount, differenceDirectoryDriveLetter,
     failedSyncCount, message, messageBody, msgDetail,
     orphanedFileSystemObjectCount, subject, diffDirectoryVolumeLabel
 }#function
