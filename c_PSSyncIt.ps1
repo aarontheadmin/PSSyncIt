@@ -52,11 +52,11 @@ function Send-EmailNotification {
     [pscustomobject]                 $notification     = Get-PSSyncItSetting | Select-Object -ExpandProperty Notification
     [string]                         $senderEmail      = $notification.SenderEmail
 
-    New-Variable -Name secureString -Visibility Private -Value ($notification.SenderAccountPasswordEncryptedString | ConvertTo-SecureString)
+    New-Variable -Name encryptedString -Visibility Private -Value ($notification.SenderAccountPasswordEncryptedString | ConvertTo-SecureString)
 
-    [pscredential]$credential = New-Object System.Management.Automation.PSCredential -ArgumentList $senderEmail, $secureString
+    [pscredential]$credential = New-Object System.Management.Automation.PSCredential -ArgumentList $senderEmail, $encryptedString
 
-    Remove-Variable -Name secureString
+    Remove-Variable -Name encryptedString
 
     [hashtable]$params = @{
         To         = [string]$notification.RecipientAddress
