@@ -118,11 +118,7 @@ function Sync-It {
 
         [Parameter()]
         [switch]
-        $Notify,
-
-        [Parameter()]
-        [switch]
-        $EjectDisk
+        $Notify
     )
 
 
@@ -349,19 +345,6 @@ Destination Parent`t: $syncDestinationPath
     fileSystemObjectsToSync, logFileFullName,
     logHeader, logPath, Destination,
     Path, moduleVersion
-    
-    # force safe removal of destination disk
-    if ($EjectDisk.IsPresent) {
-        $removeDriveExePath = Join-Path -Path $PSScriptRoot -ChildPath tools -AdditionalChildPath RemoveDrive.exe
-
-        [string] $syncDestinationPathVolume = ("{0}:" -f $syncDestinationPathDriveLetter)
-
-        & $removeDriveExePath $syncDestinationPathVolume '-f'
-
-        if (-not (Test-Path -Path $syncDestinationPathVolume)) {
-            $msgDetail += '<p>Disk safely ejected</p>'
-        }
-    }
 
     # if enabled, send notification indicating sync process has completed.
     if ($Notify.IsPresent -and $syncCompletedNotifier.Active) {
