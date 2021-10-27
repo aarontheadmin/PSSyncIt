@@ -57,7 +57,7 @@
             "SenderPort": "587",
             "RecipientAddress": "aarontheadmin@somesite.com",
             "UseSSL": "1",
-            "SenderAccountPasswordSecureString": "4100420043004400450046004700480031003200330034003500360037003800",
+            "SenderAccountPasswordEncryptedString": "4100420043004400450046004700480031003200330034003500360037003800",
             "SenderEmail": "noreply@somesite.com",
             "SmtpServer": "smtp.office365.com"
         }
