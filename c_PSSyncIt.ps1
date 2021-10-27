@@ -1,14 +1,14 @@
-function Get-PSPathSyncConfiguration {
+function Get-PSSyncItSetting {
     <#
     .SYNOPSIS
-        Gets configuration info from the PSPathSync.json file.
+        Gets configuration info from the PSSyncIt.json file.
 
     .DESCRIPTION
-        Gets configuration info from the PSPathSync.json file and
+        Gets configuration info from the PSSyncIt.json file and
         returns as a PSCustomObject.
 
     .EXAMPLE
-        PS />Get-PSPathSyncConfiguration
+        PS />Get-PSSyncItSetting
 
     .INPUTS
         None
@@ -19,21 +19,10 @@ function Get-PSPathSyncConfiguration {
     [CmdletBinding()]
     param ()
 
-    Write-Verbose -Message "Begin search for configurations in PSPathSync.json"
+    Write-Verbose -Message "Begin search for configurations in PSSyncIt.json"
 
-    [string]$jsonConfigPath = Join-Path -Path $MyInvocation.MyCommand.Module.ModuleBase -ChildPath PSPathSync.config
-    Write-Verbose -Message "- Path to config file pointing to JSON path is $jsonConfigPath"
-
-    [System.IO.StreamReader]$streamReader = New-Object -TypeName System.IO.StreamReader($jsonConfigPath) -ErrorAction Stop
-    Write-Verbose -Message "- Created System.IO.StreamReader object to read JSON path in $jsonConfigPath"
-
-    [string]$jsonFilePath = $streamReader.ReadLine() -replace '.*='
+    [string]$jsonFilePath = join-Path -Path $PSScriptRoot -ChildPath SyncIt.json
     Write-Verbose -Message "- JSON config file path is $jsonFilePath"
-
-    $streamReader.Dispose()
-    Remove-Variable streamReader
-
-    Write-Verbose -Message "- Removed System.IO.StreamReader object"
 
     [hashtable]$params = @{
         Raw         = $true
@@ -45,7 +34,7 @@ function Get-PSPathSyncConfiguration {
 
     Get-Content @params | ConvertFrom-Json
 
-    Write-Verbose -Message "Finished search for configurations in PSPathSync.json"
+    Write-Verbose -Message "Finished search for configurations in PSSyncIt.json"
 }
 
 
@@ -60,7 +49,7 @@ function Send-EmailNotification {
     )
 
     [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 # modern HTTPS requests
-    [pscustomobject]                 $notification = Get-PSPathSyncConfiguration | Select-Object -ExpandProperty Notification
+    [pscustomobject]                 $notification = Get-PSSyncItSetting | Select-Object -ExpandProperty Notification
     [string]                         $senderEmail = $notification.SenderEmail
 
     New-Variable -Name secureString -Visibility Private -Value ($notification.SenderAccountPasswordSecureString | ConvertTo-SecureString)
@@ -105,7 +94,7 @@ function Sync-RelativePath {
         exception is included in the email notification. This can indicate that there
         is not enough space on the target for the current file being copied.
 
-        Paths and other settings can be modified in the PSPathSync.json file in the
+        Paths and other settings can be modified in the PSSyncIt.json file in the
         module root.
 
     .PARAMETER ResyncAll
@@ -137,7 +126,7 @@ function Sync-RelativePath {
     )
 
 
-    [pscustomobject]$config               = Get-PSPathSyncConfiguration
+    [pscustomobject]$config               = Get-PSSyncItSetting
     [string]         $referenceDirectory  = $config.Path.ReferenceDirectory
     [string]         $differenceDirectory = $config.Path.DifferenceDirectory
     [System.Array]   $directories         = @($referenceDirectory, $differenceDirectory)
@@ -215,7 +204,7 @@ function Sync-RelativePath {
 
 
     # Log file specifics
-    [string]$moduleVersion   = Get-Module -Name PSPathSync | Select-Object -ExpandProperty Version
+    [string]$moduleVersion   = Get-Module -Name PSSyncIt | Select-Object -ExpandProperty Version
     [string]$hostName        = [System.Net.Dns]::GetHostByName((HOSTNAME.EXE)).HostName
     [string]$dateFormat      = Get-Date -UFormat %Y%m%d%H%M%S
     [string]$logPath         = $config.Path.LogPath
