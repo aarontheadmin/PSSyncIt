@@ -1,0 +1,65 @@
+{
+    "ConfigVersion": "2.0",
+    "Path": [
+        {
+            "Source": "R:\\Backups\\",
+            "Destination": "T:\\Backups\\",
+            "LogPath": "C:\\logs\\PSSyncIt\\PSSyncIt_{0}_{1}.txt"
+        }
+    ],
+    "Notification": [
+        {
+            "SyncStartedNotifier": [
+                {
+                    "Active": 1,
+                    "Title": "Backup Sync Started",
+                    "Data": [
+                        "Backup sync process has started.<p>Target label: <strong>{0}</strong></p>"
+                    ]
+                }
+            ],
+            "SyncCompletedNotifier": [
+                {
+                    "Active": 1,
+                    "Title": "Backup Sync Report",
+                    "Data": [
+                        "<table border=0 cellpadding=3 cellspacing=0>",
+                        "<tr><td>Sync target</td><td>: <strong>{0}</strong></td></tr>",
+                        "<tr><td>Completed transfers</td><td>: {1}</td></tr>",
+                        "<tr><td>Failed transfers</td><td>: {2}</td></tr>",
+                        "<tr><td>Stale files removed</td><td>: {3}</td></tr>",
+                        "<tr><td colspan='2'>{4}</td></tr></table>"
+                    ]
+                }
+            ],
+            "DirectoryNotFound": [
+                {
+                    "Active": 1,
+                    "Title": "Directory Does Not Exist",
+                    "Data": [
+                        "The directory <strong>{0}</strong> does not exist or is in use and needs to be unlocked.",
+                        "Please make sure <strong>{0}</strong> is connected and the operating system recognizes",
+                        "it, and try again."
+                    ]
+                }
+            ],
+            "IOException": [
+                {
+                    "Active": 1,
+                    "Title": "IOException",
+                    "Data": [
+                        "<p>Error: An IO exception occured (not enough free space or device is not ready). ",
+                        "Could not copy {0} ({1}) to <strong>{2}</strong>.",
+                        "Copy process stopped.</p><p>Free space: {3}</p>"
+                    ]
+                }
+            ],
+            "SenderPort": "587",
+            "RecipientAddress": "aarontheadmin@somesite.com",
+            "UseSSL": "1",
+            "SenderAccountPasswordSecureString": "4100420043004400450046004700480031003200330034003500360037003800",
+            "SenderEmail": "noreply@somesite.com",
+            "SmtpServer": "smtp.office365.com"
+        }
+    ]
+}
