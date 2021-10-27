@@ -1,35 +1,47 @@
-# PSPathSync
-PSPathSync is a PowerShell module that provides one-way syncing (cloning) of data from one directory tree to another, referred to as ReferenceDirectory and DifferenceDirectory. Its operation is comparable to using robocopy.exe with the /mir option. The customizable PSPathSync.json file contains settings for paths, email, and notifications for use with the Sync-RelativePath controller script. Currently, only PowerShell Core on Windows is supported.
+# PSSyncIt
 
-PSPathSync compares the (relative) directory tree within the specified the ReferenceDirectory against the tree within the specified DifferenceDirectory. For example, the relative tree within C:\Data will be compared to the relative tree within F:\Backups\offsite (example below).
+PSSyncIt is a PowerShell module that provides one-way syncing (cloning) of data from one directory tree to another, referred to as Path and Destination. Its operation is comparable to using robocopy.exe with the /mir option.
 
->Note: PowerShell's built-in *Compare-Object* compares the full paths, resulting in all objects (paths) being different (C: is different than F:). A common workaround is to use the (file) Name property of Compare-Object. However, this will cause the comparison operation to compare if the ReferenceObject (file) Name exists **anywhere** in the DifferenceObject, not necessarily in the same tree structure as in the ReferenceObject.
+PSSyncIt compares the folder contents (recursively) within the specified Path against the contents within the specified Destination (see Example Scenario below).
+
+>Note: PowerShell's built-in *Compare-Object* compares the full paths of filesystem objects, resulting in all objects (file paths) being different (C: is different than F:). A common workaround is to use the filesystem object's Name property of Compare-Object. However, this will cause the comparison operation to compare if the Path's file name exists **anywhere** in the Destination, not necessarily in the same tree structure as in the Path.
+
+To use this module, ideally, the controller script (c_PSSyncIt.ps1) and settings file (PSSyncIt.json) should be placed outside the module folder. This allows for module updating without overwriting your script context or sync settings.
+
+The basic structure of PSSyncIt.json contains the source, destination, and log paths used by the controller script. However, settings for email notifications have been added to extend the usability of PSSyncIt. The Notification object in PSSyncIt.json can be ignored or removed and references to Send-EmailNotification in PSSyncIt.ps1 can be commented out or removed.
+
+Currently, only PowerShell Core on Windows is supported.
 
 ## Requirements
-After the module has been installed:
-1. Place the PSPathSync.json file in a suitable location (i.e. Documents)
-2. In the module base folder, update the PSPathSync.config file to contain the path where PSPathSync.json exists
-3. Update PSPathSync.json to suit your needs (some changes may require modification of the Sync-RelativePath controller script)
 
-  **IMPORTANT:** SenderAccountPasswordSecureString is used for email authentication for notifications and must contain a SecureString:
+After the module has been installed:
+
+1. Place the PSSyncIt.ps1 and PSSyncIt.json files in a suitable location (i.e. Documents)
+2. Update both/either file to suit your needs.
+
+  **IMPORTANT:** SenderAccountPasswordEncryptedString is used for email authentication for notifications and must contain an EncryptedString:
+
   ```powershell
   PS />ConvertTo-SecureString 'ABCDEFGH12345678' -AsPlainText -Force | ConvertFrom-SecureString
   4100420043004400450046004700480031003200330034003500360037003800
   ```
-  
-Updated in PSPathSync.json:
+
+  Remember that the EncryptedString is determined by the user token used to generate it. This is important when using something like Task Scheduler to automate PSSyncIt. The user token used to generate the EncryptedString must be the same account used to run the scheduled task.
+
+Updated in PSSyncIt.json:
+
 ```json
-"SenderAccountPasswordSecureString": "4100420043004400450046004700480031003200330034003500360037003800",
+"SenderAccountPasswordEncryptedString": "4100420043004400450046004700480031003200330034003500360037003800",
 ```
 
 ## Example Scenario:
 
 | Location Type | Path |
 | --- | --- |
-| ReferenceDirectory | C:\Data |
-| DifferenceDirectory | F:\Backups\offsite |
+| Path | C:\Data |
+| Destination | F:\Backups\offsite |
 
-Inside C:\Data, there are many files and folders. PSPathSync will sync the relative structure within C:\Data to F:\Backups\offsite:
+Inside C:\Data, there are many files and folders. PSSyncIt will sync the relative structure within C:\Data to F:\Backups\offsite:
 
 Original contents of C:\Data:
 ```
@@ -51,11 +63,12 @@ F:\Backups\offsite\techdocs\inventory\tier1.xlsx
 ```
 
 Run sync:
+
 ```powershell
-PS /> Sync-RelativePath -ReferenceDirectory C:\Data -DifferenceDirectory F:\Backups\offsite
+PS /> Sync-It
 ```
 
-After sync, original content has been removed from F:\Backups\offsite and it now contains:
+After the sync, original content has been removed from F:\Backups\offsite and it now contains:
 ```
 F:\Backups\offsite\servers
 F:\Backups\offsite\servers\server_A_backup.spf
@@ -64,20 +77,36 @@ F:\Backups\offsite\bcp.pdf
 ...
 ```
 
-### Example #1
-```powershell
-PS />Sync-RelativePath
+Again, these files did not exist in the source path (C:\Data), so they were removed at the destination (F:\Backups\offsite):
 ```
-This example starts the sync, cloning content from the ReferenceDirectory and DifferenceDirectory (both specified in PSPathSync.json).
+~~F:\Backups\offsite\websites~~
+~~F:\Backups\offsite\netconfigs\all~~
+~~F:\Backups\offsite\photos\conferences~~
+~~F:\Backups\offsite\techdocs\baselines~~
+~~F:\Backups\offsite\techdocs\inventory\tier1.xlsx~~
+...
+```
+
+### Example #1
+
+```powershell
+PS />Sync-It
+```
+
+This example starts the sync, cloning content from the Path and Destination (both specified in PSSyncIt.json).
 
 ### Example #2
+
 ```powershell
-PS />Sync-RelativePath -Notify
+PS />Sync-It -Notify
 ```
-This example starts the sync (cloning the ReferenceDirectory contents to the DifferenceDirectory) and sends email notifications when the sync starts and completes. Settings are read from PSPathSync.json.
+
+This example starts the sync, cloning the Path contents to the Destination, and sends email notifications when the sync starts and completes. Settings are read from PSSyncIt.json.
 
 ### Example #3
+
 ```powershell
-PS />Sync-RelativePath -Resync -Notify
+PS />Sync-It -Resync -Notify
 ```
-This example starts the sync by re-copying all content from the ReferenceDirectory to the DifferenceDirectory, overwriting all objects, including anything previously-synced. Email notifications are sent when the sync starts and completes. Using -Resync will cause the sync to take longer.
+
+This example starts the sync by copying all content from within the Path to the Destination, overwriting pre-existing objects. Email notifications are sent when the sync starts and completes. Using -Resync will cause the sync to take longer.
