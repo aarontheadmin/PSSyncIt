@@ -79,11 +79,11 @@ F:\Backups\offsite\bcp.pdf
 
 Again, the files below did not exist in the source path ```C:\Data```, so they were removed from the destination ```F:\Backups\offsite```:
 ```
-~F:\Backups\offsite\websites~
-~F:\Backups\offsite\netconfigs\all~
-~F:\Backups\offsite\photos\conferences~
-~F:\Backups\offsite\techdocs\baselines~
-~F:\Backups\offsite\techdocs\inventory\tier1.xlsx~
+F:\Backups\offsite\websites
+F:\Backups\offsite\netconfigs\all
+F:\Backups\offsite\photos\conferences
+F:\Backups\offsite\techdocs\baselines
+F:\Backups\offsite\techdocs\inventory\tier1.xlsx
 ...
 ```
 
