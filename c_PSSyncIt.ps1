@@ -77,7 +77,7 @@ function Send-EmailNotification {
 
 
 
-function Sync-RelativePath {
+function Sync-It {
     <#
     .SYNOPSIS
         Controller script to sync two relative paths.
