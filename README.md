@@ -8,7 +8,7 @@ PSSyncIt compares the folder contents (recursively) within the specified Path ag
 
 To use this module, ideally, the controller script ```c_PSSyncIt.ps1``` and settings file ```PSSyncIt.json``` should be placed outside the module folder. This allows for module updating without overwriting your script context or sync settings.
 
-The basic structure of ```PSSyncIt.json``` contains the source, destination, and log paths used by the controller script. However, settings for email notifications have been added to extend the usability of PSSyncIt. The Notification object in ```PSSyncIt.json``` can be ignored or removed and references to Send-EmailNotification in ```PSSyncIt.ps1``` can be commented out or removed.
+The basic structure of ```PSSyncIt.json``` contains the source, destination, and log paths used by the controller script. However, settings for email notifications have been added to extend the usability of PSSyncIt. The Notification object in ```PSSyncIt.json``` can be ignored or removed and references to ```Send-EmailNotification``` in ```PSSyncIt.ps1``` can be commented out or removed.
 
 Currently, only PowerShell Core on Windows is supported.
 
@@ -19,14 +19,14 @@ After the module has been installed:
 1. Place the ```PSSyncIt.ps1``` and ```PSSyncIt.json``` files in a suitable location (i.e. Documents)
 2. Update both/either file to suit your needs.
 
-  **IMPORTANT:** SenderAccountPasswordEncryptedString is used for email authentication for notifications and must contain an EncryptedString:
+  **IMPORTANT:** ```SenderAccountPasswordEncryptedString``` is used for email authentication for notifications and must contain an EncryptedString:
 
   ```powershell
   PS />ConvertTo-SecureString 'ABCDEFGH12345678' -AsPlainText -Force | ConvertFrom-SecureString
   4100420043004400450046004700480031003200330034003500360037003800
   ```
 
-  Remember that the EncryptedString is determined by the user token used to generate it. This is important when using something like Task Scheduler to automate PSSyncIt. The user token used to generate the EncryptedString must be the same account used to run the scheduled task.
+  Remember that the EncryptedString is determined by the user token used to generate it. This is important when using something like Task Scheduler to automate PSSyncIt jobs. The user token used to generate the EncryptedString must be the same account used to run the scheduled task.
 
 Updated in ```PSSyncIt.json```:
 
@@ -41,7 +41,7 @@ Updated in ```PSSyncIt.json```:
 | Path | C:\Data |
 | Destination | F:\Backups\offsite |
 
-Inside C:\Data, there are many files and folders. PSSyncIt will sync the relative structure within ```C:\Data``` to ```F:\Backups\offsite```:
+Inside ```C:\Data```, there are many files and folders. PSSyncIt will sync the relative structure within ```C:\Data``` to ```F:\Backups\offsite```:
 
 Original contents of ```C:\Data```:
 ```
@@ -77,13 +77,13 @@ F:\Backups\offsite\bcp.pdf
 ...
 ```
 
-Again, these files did not exist in the source path ```C:\Data```, so they were removed at the destination ```F:\Backups\offsite```:
+Again, the files below did not exist in the source path ```C:\Data```, so they were removed from the destination ```F:\Backups\offsite```:
 ```
-~~F:\Backups\offsite\websites~~
-~~F:\Backups\offsite\netconfigs\all~~
-~~F:\Backups\offsite\photos\conferences~~
-~~F:\Backups\offsite\techdocs\baselines~~
-~~F:\Backups\offsite\techdocs\inventory\tier1.xlsx~~
+~F:\Backups\offsite\websites~
+~F:\Backups\offsite\netconfigs\all~
+~F:\Backups\offsite\photos\conferences~
+~F:\Backups\offsite\techdocs\baselines~
+~F:\Backups\offsite\techdocs\inventory\tier1.xlsx~
 ...
 ```
 
