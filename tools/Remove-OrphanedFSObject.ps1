@@ -4,14 +4,14 @@ function Remove-OrphanedFSObject {
         Removes an orphaned filesystem object.
 
     .DESCRIPTION
-        Removes an orphaned filesystem object when used with Compare-RelativePath.
+        Removes an orphaned filesystem object when used with Compare-PSSync.
 
-        Remove-OrphanedFSObject is intended for output objects from Compare-RelativePath.
-        When Compare-RelativePath outputs an item (filesystem object) with the
+        Remove-OrphanedFSObject is intended for output objects from Compare-PSSync.
+        When Compare-PSSync outputs an item (filesystem object) with the
         SideIndicator '=>', this indicates the item (filesystem object) exists only within
-        the DifferenceDirectory, and is therefore considered out-of-sync with the
-        ReferenceDirectory. Thus, the orphaned object can be removed from the filesystem of
-        the DifferenceDirectory.
+        the Destination, and is therefore considered out-of-sync with the
+        Path. Thus, the orphaned object can be removed from the filesystem of
+        the Destination.
 
         Note: Remove-OrphanedFSObject will only process items where the SideIndicator is '=>'.
 
@@ -29,12 +29,12 @@ function Remove-OrphanedFSObject {
         by the SideIndicator = '=>'.
 
     .EXAMPLE
-        PS />$referenceDir = 'E:\Work\Backups'
-        PS />$differenceDir = 'G:\Backups'
-        PS />Compare-RelativePath -ReferenceDirectory $referenceDir -Difference $differenceDir | Remove-OrphanedFSObject
+        PS />$pathDir = 'E:\Work\Backups'
+        PS />$destinationDir = 'G:\Backups'
+        PS />Compare-PSSync -Path $pathDir -destination $destinationDir | Remove-OrphanedFSObject
 
         The example above shows the (recursive) content of 'E:\Work\Backups' is compared to the contents in 'G:\Backups'. The
-        output objects of Compare-RelativePath are piped to Remove-OrphanedFSObject where any of the objects with the
+        output objects of Compare-PSSync are piped to Remove-OrphanedFSObject where any of the objects with the
         SideIndicator of '=>' are deleted from the filesystem.
 
     .INPUTS

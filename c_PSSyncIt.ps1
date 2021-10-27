@@ -49,8 +49,8 @@ function Send-EmailNotification {
     )
 
     [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 # modern HTTPS requests
-    [pscustomobject]                 $notification = Get-PSSyncItSetting | Select-Object -ExpandProperty Notification
-    [string]                         $senderEmail = $notification.SenderEmail
+    [pscustomobject]                 $notification     = Get-PSSyncItSetting | Select-Object -ExpandProperty Notification
+    [string]                         $senderEmail      = $notification.SenderEmail
 
     New-Variable -Name secureString -Visibility Private -Value ($notification.SenderAccountPasswordSecureString | ConvertTo-SecureString)
 
@@ -127,13 +127,13 @@ function Sync-RelativePath {
 
 
     [pscustomobject]$config               = Get-PSSyncItSetting
-    [string]         $referenceDirectory  = $config.Path.ReferenceDirectory
-    [string]         $differenceDirectory = $config.Path.DifferenceDirectory
-    [System.Array]   $directories         = @($referenceDirectory, $differenceDirectory)
+    [string]         $syncSourcePath      = $config.Path.Source
+    [string]         $syncDestinationPath = $config.Path.Destination
+    [System.Array]   $directories         = @($syncSourcePath, $syncDestinationPath)
     [pscustomobject] $notifier            = $config.Notification
 
 
-    # test if reference and difference directories exist
+    # test if path and destination directories exist
     foreach ($index in (1..($directories.Count))) {
 
         $item = $directories[$index -1]
@@ -158,37 +158,37 @@ function Sync-RelativePath {
 
 
 
-    Write-Verbose "ReferenceDirectory is $referenceDirectory"
-    Write-Verbose "DifferenceDirectory is $differenceDirectory"
+    Write-Verbose "Path is $syncSourcePath"
+    Write-Verbose "Destination is $syncDestinationPath"
 
 
-    # Get filesystem objects within ReferenceDirectory and DifferenceDirectory
-    [pscustomobject]$fileSystemObjects               = Compare-RelativePath -ReferenceDirectory $referenceDirectory -DifferenceDirectory $differenceDirectory
-    [pscustomobject]$fsoOnlyInReferenceDirectory     = $fileSystemObjects | Where-Object -FilterScript { $_.SideIndicator -match '^<=$' }
-    [pscustomobject]$fsoOnlyInDifferenceDirectory    = $fileSystemObjects | Where-Object -FilterScript { $_.SideIndicator -match '^=>$' }
-    [string]         $differenceDirectoryDriveLetter = $differenceDirectory.Substring(0, 2)
-    [string]         $diffDirectoryVolumeLabel       = Get-VolumeName -DriveLetter $differenceDirectoryDriveLetter
+    # Get filesystem objects within Path and Destination
+    [pscustomobject]$fileSystemObjects               = Compare-PSSync -Path $syncSourcePath -Destination $syncDestinationPath
+    [pscustomobject]$fsoOnlyInPath                   = $fileSystemObjects | Where-Object -FilterScript { $_.SideIndicator -match '^<=$' }
+    [pscustomobject]$fsoOnlyInDestination            = $fileSystemObjects | Where-Object -FilterScript { $_.SideIndicator -match '^=>$' }
+    [string]         $syncDestinationPathDriveLetter = $syncDestinationPath.Substring(0, 2)
+    [string]         $diffDirectoryVolumeLabel       = Get-VolumeName -DriveLetter $syncDestinationPathDriveLetter
     [pscustomobject] $syncStartedNotifier            = $notifier.SyncStartedNotifier
     [pscustomobject] $syncCompletedNotifier          = $notifier.SyncCompletedNotifier
 
 
 
-    # If Resync specified, include all filesystem objects in ReferenceDirectory
-    # even if already existing in DifferenceDirectory (forces overwriting)
+    # If Resync specified, include all filesystem objects in Path
+    # even if already existing in Destination (forces overwriting)
     if ($ResyncAll.IsPresent) {
         Write-Verbose -Message "Resync is specified"
 
         [pscustomobject]$fileSystemObjectsToSync = $fileSystemObjects | Where-Object -FilterScript { $_.SideIndicator -match '^[<=]=$' }
     }#if
     else {
-        # Sync filesystem objects existing only in ReferenceDirectory
+        # Sync filesystem objects existing only in Path
         Write-Verbose -Message "Resync not specified"
 
-        [pscustomobject]$fileSystemObjectsToSync = $fsoOnlyInReferenceDirectory
+        [pscustomobject]$fileSystemObjectsToSync = $fsoOnlyInPath
     }#else
 
 
-    Remove-Variable -Name fileSystemObjects, fsoOnlyInReferenceDirectory, ResyncAll -ErrorAction SilentlyContinue
+    Remove-Variable -Name fileSystemObjects, fsoOnlyInPath, ResyncAll -ErrorAction SilentlyContinue
 
 
 
@@ -215,8 +215,8 @@ OFFSITE BACKUP SYNC $moduleVersion
 Date`t`t: $(Get-Date)
 Host`t`t: $hostName
 Items to Sync`t: $($fileSystemObjectsToSync.Count)
-Reference Parent`t`t: $referenceDirectory
-Difference Parent`t: $differenceDirectory
+Source Path Parent`t`t: $syncSourcePath
+Destination Parent`t: $syncDestinationPath
 **************************************************
 "@
 
@@ -236,25 +236,25 @@ Difference Parent`t: $differenceDirectory
 
 
     <#
-    If filesystem objects exist only in the DifferenceDirectory, remove them
-    from DifferenceDirectory and log it. This ensures the DifferenceDirectory
-    is in sync with the ReferenceDirectory and prevents orphaned filesystem
-    objects from consuming DifferenceDirectory disk space.
+    If filesystem objects exist only in the Destination, remove them
+    from Destination and log it. This ensures the Destination
+    is in sync with the Path and prevents orphaned filesystem
+    objects from consuming Destination disk space.
     #>
     [int]$orphanedFileSystemObjectCount = 0
 
-    if ($fsoOnlyInDifferenceDirectory.Count -gt 0) {
+    if ($fsoOnlyInDestination.Count -gt 0) {
 
         [hashtable]$contentProps = @{ Path = $logFileFullName }
 
 
         # Sort collection so orphaned files are at top and directories at bottom.
-        # Once all 'orphaned' files in collection are removed from DifferenceDirectory,
+        # Once all 'orphaned' files in collection are removed from Destination,
         # any empty folders they were in can be deleted.
-        ($fsoOnlyInDifferenceDirectory | Sort-Object -Property isContainer) | & {
+        ($fsoOnlyInDestination | Sort-Object -Property isContainer) | & {
             process {
                 try {
-                    Remove-OrphanedFSObject -InputObject $_ -Confirm:$false
+                    Remove-OrphanedFSObject -InputObject $_ -Confirm: $false
                 }
                 catch {
                     $contentProps['Value'] = "[$(Get-Date -UFormat %c)]:`tCould not deleted`t$($_.InputObject.Trim())"
@@ -270,36 +270,36 @@ Difference Parent`t: $differenceDirectory
 
 
         if ($?) {
-            [int]$orphanedFileSystemObjectCount = $fsoOnlyInDifferenceDirectory.Count
+            [int]$orphanedFileSystemObjectCount = $fsoOnlyInDestination.Count
         }#if
         else {
-            [string]$orphanedFileSystemObjectCount = "$($fsoOnlyInDifferenceDirectory.Count) with errors"
+            [string]$orphanedFileSystemObjectCount = "$($fsoOnlyInDestination.Count) with errors"
         }#else
     }#if
-    Remove-Variable -Name fsoOnlyInDifferenceDirectory
+    Remove-Variable -Name fsoOnlyInDestination
 
 
 
     # Counters
-    [int]   $completedSyncCount = 0
-    [int]    $failedSyncCount   = 0
-    [string]$msgDetail          = $null
+    [int]    $completedSyncCount = 0
+    [int]    $failedSyncCount    = 0
+    [string]$msgDetail           = $null
 
 
-    # Copy filesystem objects to DifferenceDirectory
+    # Copy filesystem objects to Destination
     foreach ($item in $fileSystemObjectsToSync) {
 
         [string]$sourceFullName       = Get-Item -Path $item.InputObject
-        [string] $destinationFullName = ($sourceFullName).Replace($referenceDirectory, $differenceDirectory)
+        [string] $destinationFullName = ($sourceFullName).Replace($syncSourcePath, $syncDestinationPath)
 
         if (($sourceFullName.PSIsContainer) -and
             (-not (Test-Path -Path $destinationFullName -PathType Container))) {
 
             try { New-Item -Path $destinationFullName -ItemType Directory }#try
             catch {
-                [int]   $failedSyncCount  += 1
+                [int]    $failedSyncCount += 1
                 [string]$failedFileSize    = "{0:N2} GB" -f ((Get-ChildItem -Path $sourceFullName).Length / 1GB)
-                [string]$offsiteFreeSpace  = "{0:N2} GB" -f ((Get-Volume -DriveLetter ($differenceDirectoryDriveLetter -replace ':')).SizeRemaining / 1GB)
+                [string]$offsiteFreeSpace  = "{0:N2} GB" -f ((Get-Volume -DriveLetter ($syncDestinationPathDriveLetter -replace ':')).SizeRemaining / 1GB)
                 [string]$msgDetail         = $_
 
                 Write-Error $_
@@ -312,20 +312,20 @@ Difference Parent`t: $differenceDirectory
             try { Copy-Item -Path $sourceFullName -Destination $destinationFullName -Force }#try
             catch [System.IO.IOException] {
 
-                [int]   $failedSyncCount  += 1
+                [int]    $failedSyncCount += 1
                 [string]$failedFileSize    = "{0:N2} GB" -f ((Get-ChildItem -Path $sourceFullName).Length / 1GB)
-                [string]$offsiteFreeSpace  = "{0:N2} GB" -f ((Get-Volume -DriveLetter ($differenceDirectoryDriveLetter -replace ':')).SizeRemaining / 1GB)
+                [string]$offsiteFreeSpace  = "{0:N2} GB" -f ((Get-Volume -DriveLetter ($syncDestinationPathDriveLetter -replace ':')).SizeRemaining / 1GB)
                 [string]$msgDetail         = $notifier.IOException.Data -f $sourceFullName, $failedFileSize, $diffDirectoryVolumeLabel, $offsiteFreeSpace
 
-                Remove-Variable -Name differenceDirectoryDriveLetter, failedFileSize, offsiteFreeSpace
+                Remove-Variable -Name DestinationDriveLetter, failedFileSize, offsiteFreeSpace
 
                 Write-Error "Failed to copy $sourceFullName to $destinationFullName. Copy process stopped."
                 break
             }#catch IOException
             catch [System.Exception] {
 
-                [int]   $failedSyncCount += 1
-                [string]$msgDetail        = $_
+                [int]    $failedSyncCount += 1
+                [string]$msgDetail         = $_
 
                 Write-Error "Could not copy $sourceFullName to $destinationFullName"
                 break
@@ -334,8 +334,8 @@ Difference Parent`t: $differenceDirectory
 
 
         if ($?) {
-            [int]   $completedSyncCount += 1
-            [string]$copyEndTime         = Get-Date -UFormat %c
+            [int]    $completedSyncCount += 1
+            [string]$copyEndTime          = Get-Date -UFormat %c
 
             Add-Content -Path $logFileFullName -Value "[$copyEndTime]:`tCopied`t$($destinationFullName.Trim())"
 
@@ -347,18 +347,18 @@ Difference Parent`t: $differenceDirectory
 
     Remove-Variable -Name hostName,
     fileSystemObjectsToSync, logFileFullName,
-    logHeader, logPath, differenceDirectory,
-    referenceDirectory, moduleVersion
+    logHeader, logPath, Destination,
+    Path, moduleVersion
     
-    # force safe removal of difference disk
+    # force safe removal of destination disk
     if ($EjectDisk.IsPresent) {
         $removeDriveExePath = Join-Path -Path $PSScriptRoot -ChildPath tools -AdditionalChildPath RemoveDrive.exe
 
-        [string] $differenceDirectoryVolume = ("{0}:" -f $differenceDirectoryDriveLetter)
+        [string] $syncDestinationPathVolume = ("{0}:" -f $syncDestinationPathDriveLetter)
 
-        & $removeDriveExePath $differenceDirectoryVolume '-f'
+        & $removeDriveExePath $syncDestinationPathVolume '-f'
 
-        if (-not (Test-Path -Path $differenceDirectoryVolume)) {
+        if (-not (Test-Path -Path $syncDestinationPathVolume)) {
             $msgDetail += '<p>Disk safely ejected</p>'
         }
     }
@@ -373,7 +373,7 @@ Difference Parent`t: $differenceDirectory
         Send-EmailNotification -Subject $subject -MessageBody $messageBody
     }
 
-    Remove-Variable -Name config, completedSyncCount, differenceDirectoryDriveLetter,
+    Remove-Variable -Name config, completedSyncCount, DestinationDriveLetter,
     failedSyncCount, message, messageBody, msgDetail,
     orphanedFileSystemObjectCount, subject, diffDirectoryVolumeLabel
 }#function

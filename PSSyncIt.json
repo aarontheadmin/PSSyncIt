@@ -2,8 +2,8 @@
     "ConfigVersion": "2.0",
     "Path": [
         {
-            "ReferenceDirectory": "R:\\Backups\\",
-            "DifferenceDirectory": "T:\\Backups\\",
+            "Source": "R:\\Backups\\",
+            "Destination": "T:\\Backups\\",
             "LogPath": "C:\\logs\\PSSyncIt\\PSSyncIt_{0}_{1}.txt"
         }
     ],
