@@ -68,13 +68,12 @@ function Compare-PSSync {
     # Store each child object existing in Path into hashtable as Key and set the Value to '<='
     # as the default.
     [hashtable]$syncSourcePathChildren = @{ }
-    Get-ChildItem -Path $syncSourcePath -Recurse | & { process { $syncSourcePathChildren[$_.FullName] = '<=' } }
+    Get-ChildItem -Path $Path -Recurse | & { process { $syncSourcePathChildren[$_.FullName] = '<=' } }
 
     # Store each child object existing in Destination into hashtable as key and set the Value to
     # $null - Value to be modified later.
     [hashtable]$syncDestinationPathChildren = @{ }
-    Get-ChildItem -Path $syncDestinationPath -Recurse | & { process { $syncDestinationPathChildren[$_.FullName] = $null } }
-
+    Get-ChildItem -Path $Destination -Recurse | & { process { $syncDestinationPathChildren[$_.FullName] = $null } }
 
     # Loop through all Keys (full paths) in hashtable containing Destination child objects.
     foreach ($destinationChildObject in $syncDestinationPathChildren.Keys) {
@@ -82,8 +81,8 @@ function Compare-PSSync {
         # Get the relative path from the current child object by removing the Destination portion, and append the
         # relative path to the specified Path path. This constructs the full path of the same child object but
         # in the Path.
-        [string]$relativePath            = $destinationChildObject.Replace($syncDestinationPath, '')
-        [string]$PathFullName = Join-Path -Path $syncSourcePath -ChildPath $relativePath
+        [string]$relativePath            = $destinationChildObject.Replace($Destination, '')
+        [string]$PathFullName = Join-Path -Path $path -ChildPath $relativePath
         [bool]   $isContainer            = $false # default object type to file
 
         # Check if current Destination is a directory (otherwise it's a file)
