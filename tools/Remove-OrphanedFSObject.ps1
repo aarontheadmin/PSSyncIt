@@ -46,7 +46,9 @@ function Remove-OrphanedFSObject {
     [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
     param (
         [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
-        [ValidateScript( { ($_.SideIndicator -match '^(=>)$') -and (Test-Path -Path $_.InputObject) })]
+        [ValidateScript( {
+            ($_.SideIndicator -match '^(=>)$') -and (Test-Path -Path $_.InputObject)
+        })]
         [pscustomobject[]]$InputObject
     )
 

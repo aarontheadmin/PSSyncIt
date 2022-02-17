@@ -27,7 +27,7 @@ function Compare-PSSync {
         PS />Compare-PSSync -Path C:\MyScripts\ -Destination E:\Backups\MyScripts
 
         The example above will compare all items within C:\MyScripts to all items in
-            E:\Backups\MyScripts, recursively, and will output any destinations it finds.
+        E:\Backups\MyScripts, recursively, and will output any destinations it finds.
 
         The parent directory for Path and Destination is MyScripts.
         These parent directory names do not have to match but the relative structure within
@@ -81,9 +81,9 @@ function Compare-PSSync {
         # Get the relative path from the current child object by removing the Destination portion, and append the
         # relative path to the specified Path path. This constructs the full path of the same child object but
         # in the Path.
-        [string]$relativePath            = $destinationChildObject.Replace($Destination, '')
+        [string]$relativePath = $destinationChildObject.Replace($Destination, '')
         [string]$PathFullName = Join-Path -Path $path -ChildPath $relativePath
-        [bool]   $isContainer            = $false # default object type to file
+        [bool]   $isContainer = $false # default object type to file
 
         # Check if current Destination is a directory (otherwise it's a file)
         if ((Get-Item -Path $destinationChildObject) -is [System.IO.DirectoryInfo]) {
