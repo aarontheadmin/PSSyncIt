@@ -21,7 +21,7 @@ function Get-PSSyncItSetting {
 
     Write-Verbose -Message "Begin search for configurations in PSSyncIt.json"
 
-    [string]$jsonFilePath = join-Path -Path $PSScriptRoot -ChildPath SyncIt.json
+    [string]$jsonFilePath = join-Path -Path $PSScriptRoot -ChildPath PSSyncIt.json
     Write-Verbose -Message "- JSON config file path is $jsonFilePath"
 
     [hashtable]$params = @{
@@ -145,7 +145,7 @@ function Sync-It {
                 Send-EmailNotification -Subject $subject -MessageBody $messageBody
             }
 
-            Exit
+            #Exit
         }#if
     }#foreach
 
@@ -184,7 +184,7 @@ function Sync-It {
     }#else
 
 
-    Remove-Variable -Name fileSystemObjects, fsoOnlyInPath, ResyncAll -ErrorAction SilentlyContinue
+    #Remove-Variable -Name fileSystemObjects, fsoOnlyInPath, ResyncAll -ErrorAction SilentlyContinue
 
 
 
@@ -216,7 +216,7 @@ Destination Parent`t: $syncDestinationPath
 **************************************************
 "@
 
-    Remove-Variable -Name dateFormat
+    #Remove-Variable -Name dateFormat
 
     # Create the log file
     if (-not (Test-Path -Path $logFileFullName)) {
@@ -272,7 +272,7 @@ Destination Parent`t: $syncDestinationPath
             [string]$orphanedFileSystemObjectCount = "$($fsoOnlyInDestination.Count) with errors"
         }#else
     }#if
-    Remove-Variable -Name fsoOnlyInDestination
+   # Remove-Variable -Name fsoOnlyInDestination
 
 
 
@@ -286,8 +286,11 @@ Destination Parent`t: $syncDestinationPath
     foreach ($item in $fileSystemObjectsToSync) {
 
         [string]$sourceFullName       = Get-Item -Path $item.InputObject
-        [string] $destinationFullName = ($sourceFullName).Replace($syncSourcePath, $syncDestinationPath)
-
+        Write-Verbose "sourceFullName is $sourceFullName"
+        Write-Verbose "syncDestinationPath is $syncDestinationPath"
+        Write-Verbose "syncSourcePath is $syncSourcePath"
+        Write-Verbose "Destination full path is $destinationFullName"
+        [string] $destinationFullName = $sourceFullName -replace [regex]::Escape($syncSourcePath), $syncDestinationPath
         if (($sourceFullName.PSIsContainer) -and
             (-not (Test-Path -Path $destinationFullName -PathType Container))) {
 
@@ -313,7 +316,7 @@ Destination Parent`t: $syncDestinationPath
                 [string]$offsiteFreeSpace  = "{0:N2} GB" -f ((Get-Volume -DriveLetter ($syncDestinationPathDriveLetter -replace ':')).SizeRemaining / 1GB)
                 [string]$msgDetail         = $notifier.IOException.Data -f $sourceFullName, $failedFileSize, $diffDirectoryVolumeLabel, $offsiteFreeSpace
 
-                Remove-Variable -Name DestinationDriveLetter, failedFileSize, offsiteFreeSpace
+                #Remove-Variable -Name DestinationDriveLetter, failedFileSize, offsiteFreeSpace
 
                 Write-Error "Failed to copy $sourceFullName to $destinationFullName. Copy process stopped."
                 break
@@ -335,16 +338,16 @@ Destination Parent`t: $syncDestinationPath
 
             Add-Content -Path $logFileFullName -Value "[$copyEndTime]:`tCopied`t$($destinationFullName.Trim())"
 
-            Remove-Variable -Name copyEndTime
+            #Remove-Variable -Name copyEndTime
         }#if
-        Remove-Variable -Name sourceFullName, destinationFullName
+        #Remove-Variable -Name sourceFullName, destinationFullName
 
     }#foreach
 
-    Remove-Variable -Name hostName,
-    fileSystemObjectsToSync, logFileFullName,
-    logHeader, logPath, Destination,
-    Path, moduleVersion
+    #Remove-Variable -Name hostName,
+    # fileSystemObjectsToSync, logFileFullName,
+    # logHeader, logPath, Destination,
+    # Path, moduleVersion
 
     # if enabled, send notification indicating sync process has completed.
     if ($Notify.IsPresent -and $syncCompletedNotifier.Active) {
@@ -356,7 +359,7 @@ Destination Parent`t: $syncDestinationPath
         Send-EmailNotification -Subject $subject -MessageBody $messageBody
     }
 
-    Remove-Variable -Name config, completedSyncCount, DestinationDriveLetter,
-    failedSyncCount, message, messageBody, msgDetail,
-    orphanedFileSystemObjectCount, subject, diffDirectoryVolumeLabel
+    # Remove-Variable -Name config, completedSyncCount, DestinationDriveLetter,
+    # failedSyncCount, message, messageBody, msgDetail,
+    # orphanedFileSystemObjectCount, subject, diffDirectoryVolumeLabel
 }#function
